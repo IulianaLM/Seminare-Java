@@ -1,0 +1,214 @@
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
+class Profesor{
+    private int idProfesor;
+    private String  prenume;
+    private String nume;
+    private String departament;
+
+    public Profesor(int idProfesor, String prenume, String nume, String departament) {
+        this.idProfesor = idProfesor;
+        this.prenume = prenume;
+        this.nume = nume;
+        this.departament = departament;
+    }
+
+    public int getIdProfesor() {
+        return idProfesor;
+    }
+
+    public void setIdProfesor(int idProfesor) {
+        this.idProfesor = idProfesor;
+    }
+
+    public String getPrenume() {
+        return prenume;
+    }
+
+    public void setPrenume(String prenume) {
+        this.prenume = prenume;
+    }
+
+    public String getNume() {
+        return nume;
+    }
+
+    public void setNume(String nume) {
+        this.nume = nume;
+    }
+
+    public String getDepartament() {
+        return departament;
+    }
+
+    public void setDepartament(String departament) {
+        this.departament = departament;
+    }
+
+    @Override
+    public String toString() {
+        return "Profesor{" +
+                "idProfesor=" + idProfesor +
+                ", prenume='" + prenume + '\'' +
+                ", nume='" + nume + '\'' +
+                ", departament='" + departament + '\'' +
+                '}';
+    }
+}
+
+class Programare{
+    private String ziua;
+    private String interval;
+    private Profesor profesor;
+    private String disciplina;
+    private String sala;
+    private boolean esteCurs;
+    private String formatie;
+
+    public Programare(String ziua, String interval, Profesor profesor, String disciplina, String sala, boolean esteCurs, String formatie) {
+        this.ziua = ziua;
+        this.interval = interval;
+        this.profesor = profesor;
+        this.disciplina = disciplina;
+        this.sala = sala;
+        this.esteCurs = esteCurs;
+        this.formatie = formatie;
+    }
+
+    public String getZiua() {
+        return ziua;
+    }
+
+    public String getInterval() {
+        return interval;
+    }
+
+    public Profesor getProfesor() {
+        return profesor;
+    }
+
+    public String getDisciplina() {
+        return disciplina;
+    }
+
+    public String getSala() {
+        return sala;
+    }
+
+    public boolean isEsteCurs() {
+        return esteCurs;
+    }
+
+    public String getFormatie() {
+        return formatie;
+    }
+
+    @Override
+    public String toString() {
+        return "Programare{" +
+                "ziua='" + ziua + '\'' +
+                ", interval='" + interval + '\'' +
+                ", profesor=" + profesor +
+                ", disciplina='" + disciplina + '\'' +
+                ", sala='" + sala + '\'' +
+                ", esteCurs=" + esteCurs +
+                ", formatie='" + formatie + '\'' +
+                '}';
+    }
+}
+
+class Program {
+    public static void main(String[] args) throws Exception{
+
+        Map<Integer,Profesor> profesori;
+
+        //citirea fisierului si afisarea lui
+//        try(var fisier= new BufferedReader(
+//                new FileReader("src/profesori.txt")))
+//        {
+//            fisier.lines().forEach(System.out::println);
+//        }
+
+        //altfel de afisare
+        try(var fisier= new BufferedReader(
+                new FileReader("src/profesori.txt")))
+        {
+            profesori =fisier.lines()
+                    .map(linie-> new Profesor(
+                            Integer.parseInt(linie.split("\t")[0]),
+                            linie.split("\t")[1],
+                            linie.split("\t")[2],
+                            linie.split("\t")[3]
+                    ))
+                    .collect(Collectors.toMap(p-> p.getIdProfesor(), p->p));
+
+        }
+//        System.out.println(profesori);
+
+        //pentru citirea si afisarea fisierului programari
+        //spre deosebire de profesori.txt aici putem afisa intro lista nu avem nevoie de Map
+        List<Programare> programari;
+        try(var fisier= new BufferedReader(
+                new FileReader("src/programari.txt")))
+        {
+            programari =fisier.lines()
+                    .map(linie-> new Programare(
+                            linie.split("\t")[0],
+                            linie.split("\t")[1],
+                            profesori.get(
+                                    Integer.parseInt(linie.split("\t")[2])),
+
+                            linie.split("\t")[3],
+                            linie.split("\t")[4],
+                            Boolean.parseBoolean(linie.split("\t")[5]),
+                            linie.split("\t")[6]
+                    ))
+                    .collect(Collectors.toList());
+
+        }
+//        System.out.println(programari);
+
+//        programari.stream()
+//                .forEach(System.out::println);
+
+        //filtre in functie de ce vrem sa afisam
+        programari.stream()
+                .filter(Programare::isEsteCurs)  //ia doar pe cel care au curs
+                .map(Programare::getDisciplina) //ia doar disciplinele
+                .distinct()
+                .sorted()   //ordonate alfabetic
+                .forEach(System.out::println);
+
+
+        //afiseaza numarul de cursuri si numarul de seminarii pt fiecare profesor
+        programari.stream()
+                .collect(Collectors.groupingBy(Programare::getProfesor))
+                .forEach((p,l)->{
+                    System.out.println(p.getNume()+" ==> "+l.size());
+                });
+
+        //obtinem lista de departamente
+        programari.stream()
+                .map(p->p.getProfesor().getDepartament())
+                .distinct()
+                .forEach(System.out::println);
+        
+        //numarul activitatilor de la fiecare departament
+        programari.stream()
+                .map(p->p.getProfesor().getDepartament())
+                .distinct()
+                .forEach(dep->{
+                    var n= programari.stream()
+                            .filter(p->p.getProfesor().getDepartament().equals(dep))
+                            .count();
+                    System.out.printf("%d activitati - %s%n", n, dep);
+                });
+
+
+    }
+}
